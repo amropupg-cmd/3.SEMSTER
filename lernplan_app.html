@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Lernplan 2026</title>
+
+<!-- PWA Meta Tags -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lernplan">
+<meta name="theme-color" content="#1a1a6e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Persönlicher Lernplan Klausurvorbereitung 2026">
+<link rel="manifest" href="manifest.json">
+
+<!-- iOS Icons (inline SVG als Data-URL) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%231a1a6e'/%3E%3Ctext x='90' y='115' font-size='90' text-anchor='middle' font-family='Arial' fill='white'%3E📚%3C/text%3E%3C/svg%3E">
+
+<!-- Offline Service Worker -->
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    const sw = `
+self.addEventListener('install',e=>e.waitUntil(
+  caches.open('lernplan-v1').then(c=>c.addAll([location.pathname]))
+));
+self.addEventListener('fetch',e=>e.respondWith(
+  caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match(e.request)))
+));`;
+    const blob=new Blob([sw],{type:'application/javascript'});
+    const url=URL.createObjectURL(blob);
+    navigator.serviceWorker.register(url).catch(()=>{});
+  });
+}
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f0f4fa;color:#1a1a2e;font-size:14px;padding-bottom:env(safe-area-inset-bottom)}
+.topbar{background:#1a1a6e;color:white;padding:14px 16px}
+.topbar h1{font-size:17px;font-weight:700}
+.topbar p{font-size:11px;opacity:.7;margin-top:3px}
+.cbar{background:#13134a;padding:8px 16px;display:flex;gap:8px;overflow-x:auto}
+.cd{background:#ffffff18;border-radius:8px;padding:6px 10px;text-align:center;min-width:78px;flex-shrink:0}
+.cd-days{font-size:18px;font-weight:700;color:#fff}
+.cd-sub{font-size:9px;color:#aac4ff;margin-top:2px;white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 12px;background:white;border-bottom:1px solid #e2e8f0}
+.stat{background:#f1f5fd;border-radius:8px;padding:8px;text-align:center}
+.stat-lbl{font-size:10px;color:#666}
+.stat-val{font-size:19px;font-weight:700;color:#1a1a6e}
+.stat-val.g{color:#16a34a}
+.bwrap{padding:8px 12px;background:white;border-bottom:1px solid #e2e8f0}
+.bbg{height:7px;background:#e2e8f0;border-radius:4px;overflow:hidden}
+.bfill{height:100%;background:#16a34a;border-radius:4px;transition:width .4s}
+.blbl{font-size:10px;color:#888;margin-top:3px}
+.nav{display:flex;background:white;border-bottom:2px solid #e2e8f0}
+.nav-btn{flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;cursor:pointer;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px}
+.nav-btn.active{color:#1a1a6e;border-bottom-color:#1a1a6e}
+.view{display:none;padding:10px 12px}
+.view.active{display:block}
+
+/* badges */
+.badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.b-oc{background:#dbeafe;color:#1e3a8a}
+.b-quanti{background:#ede9fe;color:#4c1d95}
+.b-biochem{background:#ffedd5;color:#7c2d12}
+.b-genetik{background:#dcfce7;color:#14532d}
+.b-morpho{background:#f3e8ff;color:#6b21a8}
+.b-physio{background:#fef9c3;color:#713f12}
+.b-termi{background:#fce7f3;color:#831843}
+.b-afl{background:#e0f2fe;color:#0c4a6e}
+.b-pause{background:#f1f5f9;color:#475569}
+
+/* time blocks */
+.tblock{background:white;border-radius:12px;margin-bottom:10px;overflow:hidden;border:1px solid #e2e8f0}
+.tblock-hdr{padding:10px 16px;display:flex;align-items:center;gap:12px}
+.tblock-time{font-size:15px;font-weight:700;color:white;background:#1a1a6e;border-radius:8px;padding:5px 12px;white-space:nowrap}
+.tblock-fach{font-size:15px;font-weight:700}
+.tblock-dur{font-size:12px;color:#888;margin-left:auto}
+.tblock-body{border-top:1px solid #f1f5f9;padding:10px 16px}
+.pausen-info{font-size:12px;color:#64748b;margin-bottom:6px}
+
+/* pause block */
+.pause-block{background:#f8fafc;border-radius:12px;margin-bottom:10px;border:1px dashed #cbd5e1;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.pause-time{font-size:14px;font-weight:700;color:#475569;background:#e2e8f0;border-radius:8px;padding:5px 12px;white-space:nowrap}
+.pause-label{font-size:13px;color:#64748b;font-weight:700}
+.pause-dur{font-size:12px;color:#94a3b8;margin-left:auto}
+
+/* checkbox row */
+.cb-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f3f4f6;cursor:pointer;transition:background .1s;border-radius:6px;padding-left:4px;padding-right:4px}
+.cb-row:last-child{border-bottom:none}
+.cb-row:hover{background:#f8faff}
+.cb-row.done .cb-label{text-decoration:line-through;color:#aaa}
+.cb{width:22px;height:22px;border-radius:5px;border:2px solid #cbd5e1;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:transparent;background:white;transition:all .15s}
+.cb.on{background:#16a34a;border-color:#16a34a;color:white}
+.cb-label{font-size:13px;flex:1}
+
+/* alerts */
+.alert{border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:13px;font-weight:700;text-align:center}
+.alert-exam{background:#dcfce7;border:1px solid #16a34a;color:#14532d}
+.alert-pre{background:#fee2e2;border:1px solid #ef4444;color:#7f1d1d}
+.alert-near{background:#fef3c7;border:1px solid #f59e0b;color:#92400e}
+
+/* day nav */
+.day-nav{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.day-nav button{background:#1a1a6e;color:white;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:15px;font-weight:700}
+.day-title{flex:1;text-align:center;font-size:14px;font-weight:700;color:#1a1a6e}
+
+/* weekly */
+.wtabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.wtab{padding:5px 10px;border-radius:16px;font-size:11px;font-weight:700;border:1.5px solid #d1d5db;background:white;color:#555;cursor:pointer}
+.wtab.active{background:#1a1a6e;color:white;border-color:#1a1a6e}
+.wday-card{background:white;border-radius:10px;margin-bottom:8px;overflow:hidden;border:1px solid #e2e8f0}
+.wday-hdr{padding:10px 14px;background:#f8faff;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.wday-title{font-size:13px;font-weight:700;color:#1a1a6e}
+.wday-sub{font-size:11px;color:#888;margin-top:2px}
+.wday-pct{font-size:14px;font-weight:700;color:#16a34a}
+.wday-fachs{padding:6px 14px;display:flex;flex-wrap:wrap;gap:5px;border-bottom:1px solid #f3f4f6}
+.wday-tasks{display:none}
+.wday-tasks.open{display:block}
+
+/* exam list */
+.exam-card{background:white;border-radius:10px;padding:12px 16px;margin-bottom:8px;border:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}
+.exam-name{font-size:14px;font-weight:700}
+.exam-dt{font-size:11px;color:#888;margin-top:3px}
+.days-ok{color:#16a34a;font-size:18px;font-weight:700}
+.days-warn{color:#d97706;font-size:18px;font-weight:700}
+.days-urg{color:#dc2626;font-size:18px;font-weight:700}
+.days-done{color:#888;font-size:13px}
+
+.reset-btn{font-size:11px;background:#fee2e2;color:#991b1b;border:none;padding:6px 14px;border-radius:16px;cursor:pointer;font-weight:700;display:block;margin:12px auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;background:white;border-bottom:1px solid #e2e8f0}
+.leg{display:flex;align-items:center;gap:4px;font-size:11px;color:#555}
+.leg-dot{width:9px;height:9px;border-radius:2px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Lernplan Klausurvorbereitung 2026</h1>
+  <p>Start: 10:00 Uhr · 10h/Tag netto · Pausen inkl. · Ziel: Note 2–3</p>
+</div>
+<div class="cbar" id="cbar"></div>
+<div class="stats">
+  <div class="stat"><div class="stat-lbl">Gesamt</div><div class="stat-val" id="s-total">0</div></div>
+  <div class="stat"><div class="stat-lbl">Erledigt</div><div class="stat-val g" id="s-done">0</div></div>
+  <div class="stat"><div class="stat-lbl">Offen</div><div class="stat-val" id="s-open">0</div></div>
+  <div class="stat"><div class="stat-lbl">Fortschritt</div><div class="stat-val" id="s-pct">0%</div></div>
+</div>
+<div class="bwrap">
+  <div class="bbg"><div class="bfill" id="main-bar" style="width:0%"></div></div>
+  <div class="blbl" id="bar-lbl">0 von 0 erledigt</div>
+</div>
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:#3b82f6"></div>OC</div>
+  <div class="leg"><div class="leg-dot" style="background:#8b5cf6"></div>Quanti</div>
+  <div class="leg"><div class="leg-dot" style="background:#f97316"></div>Biochemie</div>
+  <div class="leg"><div class="leg-dot" style="background:#22c55e"></div>Genetik</div>
+  <div class="leg"><div class="leg-dot" style="background:#a855f7"></div>Morpho</div>
+  <div class="leg"><div class="leg-dot" style="background:#eab308"></div>Physio</div>
+  <div class="leg"><div class="leg-dot" style="background:#ec4899"></div>Termi</div>
+  <div class="leg"><div class="leg-dot" style="background:#06b6d4"></div>AFL</div>
+</div>
+<div class="nav">
+  <button class="nav-btn active" onclick="showView('daily')">Täglich</button>
+  <button class="nav-btn" onclick="showView('weekly')">Wöchentlich</button>
+  <button class="nav-btn" onclick="showView('exams')">Klausuren</button>
+</div>
+
+<div class="view active" id="view-daily">
+  <div class="day-nav">
+    <button onclick="chDay(-1)">&#8592;</button>
+    <div class="day-title" id="day-title"></div>
+    <button onclick="chDay(1)">&#8594;</button>
+  </div>
+  <div id="day-alert"></div>
+  <div id="day-prog"></div>
+  <div id="day-content"></div>
+  <button class="reset-btn" onclick="resetAll()">Alles zurücksetzen</button>
+</div>
+
+<div class="view" id="view-weekly">
+  <div class="wtabs" id="wtabs"></div>
+  <div id="wcontent"></div>
+  <button class="reset-btn" onclick="resetAll()">Alles zurücksetzen</button>
+</div>
+
+<div class="view" id="view-exams">
+  <div style="padding-top:4px" id="elist"></div>
+</div>
+
+<script>
+const EXAMS=[
+  {name:'AFL',        date:'2026-05-29', fach:'afl'},
+  {name:'Termi',      date:'2026-06-22', fach:'termi'},
+  {name:'Physiologie',date:'2026-06-25', fach:'physio'},
+  {name:'OC',         date:'2026-06-26', fach:'oc'},
+  {name:'Morphologie',date:'2026-07-01', fach:'morpho'},
+  {name:'Biochemie',  date:'2026-07-03', fach:'biochem'},
+];
+
+const BL={oc:'OC',quanti:'Quanti',biochem:'Biochemie',genetik:'Genetik',morpho:'Morpho',physio:'Physio',termi:'Termi',afl:'AFL'};
+const BC={oc:'b-oc',quanti:'b-quanti',biochem:'b-biochem',genetik:'b-genetik',morpho:'b-morpho',physio:'b-physio',termi:'b-termi',afl:'b-afl'};
+const FCOL={oc:'#1e3a8a',quanti:'#4c1d95',biochem:'#7c2d12',genetik:'#14532d',morpho:'#6b21a8',physio:'#713f12',termi:'#831843',afl:'#0c4a6e'};
+const FBGCOL={oc:'#dbeafe',quanti:'#ede9fe',biochem:'#ffedd5',genetik:'#dcfce7',morpho:'#f3e8ff',physio:'#fef9c3',termi:'#fce7f3',afl:'#e0f2fe'};
+
+// Zeitplan-Generator
+// Input: Startzeit, ob Wochenende, Typ (normal/pre-exam/exam), examFach
+// Output: Array von Segmenten {type:'study'|'pause'|'bigpause', fach, start, end, durationMin}
+
+function buildSchedule(startHour, isWeekend, dayType, examFach){
+  // Netto-Lernzeit: 10h
+  // Pausen: 5 Min nach jeder Stunde, 30 Min nach Block 1 (4h)
+  // Gross-Zeit: 10h Lernen + (10 * 5min Pausen) + 30min große Pause = 10h + 50min + 30min = 12h 20min
+
+  const segments=[];
+  let cur=startHour*60; // in Minuten
+
+  function addSeg(type,fach,dur,label){
+    const s=cur;
+    cur+=dur;
+    segments.push({type,fach,start:s,end:cur,label:label||null});
+  }
+  function fmt(m){
+    const h=Math.floor(m/60);
+    const mn=m%60;
+    return String(h).padStart(2,'0')+':'+String(mn).padStart(2,'0');
+  }
+
+  if(dayType==='exam'){
+    // Klausurtag: 1h Lernkarten morgens, dann frei
+    addSeg('study',examFach,60);
+    addSeg('pause',null,30,'Große Pause');
+    addSeg('study',examFach,30,'Lernkarten');
+    addSeg('pause',null,9999,'Frei – Klausur heute!');
+    segments.forEach(s=>{s.startFmt=fmt(s.start);s.endFmt=fmt(s.end<9999*60?s.end:s.start+60);});
+    return segments;
+  }
+
+  if(dayType==='pre-exam'){
+    // Vortag: 4h Hauptklausurfach, 30min Pause, 2h weiteres, 2h leicht, dann früh schlafen
+    // Nur bekannte Sachen wiederholen
+    for(let i=0;i<4;i++){
+      addSeg('study',examFach,60);
+      if(i<3) addSeg('pause',null,5,'5 Min Pause');
+    }
+    addSeg('pause',null,30,'30 Min Pause');
+    for(let i=0;i<2;i++){
+      addSeg('study',examFach,60);
+      if(i<1) addSeg('pause',null,5,'5 Min Pause');
+    }
+    addSeg('pause',null,5,'5 Min Pause');
+    addSeg('study','physio',60);
+    addSeg('pause',null,5,'5 Min Pause');
+    addSeg('study','physio',60);
+    segments.forEach(s=>{s.startFmt=fmt(s.start);s.endFmt=fmt(s.end);});
+    return segments;
+  }
+
+  // NORMALER TAG
+  // Wochentag: OC(4h) | Pause30 | Biochem/Morpho(3h) | Physio(2h) | Physio(1h)
+  // Wochenende: OC(4h) | Pause30 | Biochem/Morpho(3h) | Quanti(1h) | Termi(1h) | Physio(1h)
+
+  // Block 1: OC 4h (mit 5min Pausen nach jeder Stunde, außer nach letzter)
+  for(let i=0;i<4;i++){
+    addSeg('study','oc',60);
+    if(i<3) addSeg('pause',null,5,'5 Min Pause');
+  }
+  // Große Pause 30min
+  addSeg('bigpause',null,30,'30 Min Pause');
+
+  if(!isWeekend){
+    // Block 2: Biochemie/Morpho 3h (alternierend pro Woche)
+    const b2=['biochem','morpho','genetik'];
+    // wird per Datum entschieden außerhalb
+    for(let i=0;i<3;i++){
+      addSeg('study','__B2__',60);
+      if(i<2) addSeg('pause',null,5,'5 Min Pause');
+    }
+    addSeg('pause',null,5,'5 Min Pause');
+    // Block 3: Physio 3h
+    for(let i=0;i<3;i++){
+      addSeg('study','physio',60);
+      if(i<2) addSeg('pause',null,5,'5 Min Pause');
+    }
+  } else {
+    // Wochenende: Biochem/Morpho 3h
+    for(let i=0;i<3;i++){
+      addSeg('study','__B2__',60);
+      if(i<2) addSeg('pause',null,5,'5 Min Pause');
+    }
+    addSeg('pause',null,5,'5 Min Pause');
+    // Quanti 1h
+    addSeg('study','quanti',60);
+    addSeg('pause',null,5,'5 Min Pause');
+    // Termi 1h
+    addSeg('study','termi',60);
+    addSeg('pause',null,5,'5 Min Pause');
+    // Physio 1h
+    addSeg('study','physio',60);
+  }
+
+  segments.forEach(s=>{s.startFmt=fmt(s.start);s.endFmt=fmt(s.end);});
+  return segments;
+}
+
+// Erstelle alle Tage 13.04 – 03.07
+function dateRange(s,e){
+  const dates=[];const cur=new Date(s+'T12:00:00');const end=new Date(e+'T12:00:00');
+  while(cur<=end){dates.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
+  return dates;
+}
+const ALL_DATES=dateRange('2026-04-13','2026-07-03');
+
+// Exam & pre-exam lookup
+const EXAM_MAP={};
+EXAMS.forEach(ex=>{
+  EXAM_MAP[ex.date]={type:'exam',fach:ex.fach,name:ex.name};
+  const prev=new Date(ex.date+'T12:00:00');prev.setDate(prev.getDate()-1);
+  const ps=prev.toISOString().slice(0,10);
+  if(!EXAM_MAP[ps]) EXAM_MAP[ps]={type:'pre-exam',fach:ex.fach,name:ex.name};
+});
+
+// B2 rotation: jede Woche anderes Fach
+const B2_ROTA=['biochem','morpho','genetik','biochem','morpho','genetik','biochem','morpho','genetik','biochem','morpho','genetik'];
+function getB2(dt){
+  const start=new Date('2026-04-13T12:00:00');
+  const d=new Date(dt+'T12:00:00');
+  const week=Math.floor((d-start)/(7*24*60*60*1000));
+  return B2_ROTA[week%B2_ROTA.length];
+}
+
+// Before AFL (29.05): include AFL in schedule
+function getAflPhase(dt){ return dt<'2026-05-29'; }
+
+// Build full schedule
+const SCHEDULE={};
+let globalTid=0;
+ALL_DATES.forEach(dt=>{
+  const info=EXAM_MAP[dt];
+  const type=info?info.type:'normal';
+  const examFach=info?info.fach:'oc';
+  const dow=new Date(dt+'T12:00:00').getDay();
+  const isWeekend=(dow===0||dow===6);
+  
+  let segs=buildSchedule(10,isWeekend,type,examFach);
+  
+  // Replace __B2__ with actual fach
+  const b2=getB2(dt);
+  // Before AFL phase: replace one physio block with AFL on weekdays
+  const aflPhase=getAflPhase(dt);
+  
+  segs.forEach(s=>{
+    if(s.fach==='__B2__') s.fach=b2;
+    // In AFL phase, replace last physio segment on weekdays with AFL
+    if(aflPhase && !isWeekend && s.fach==='physio' && type==='normal'){
+      // only replace 1 of the 3 physio blocks (first one)
+      s._maybeAfl=true;
+    }
+  });
+  // Replace first physio marked as maybe AFL
+  if(aflPhase && type==='normal' && !isWeekend){
+    let replaced=false;
+    segs.forEach(s=>{
+      if(s._maybeAfl && !replaced){ s.fach='afl'; replaced=true; }
+      delete s._maybeAfl;
+    });
+  }
+
+  // Assign IDs to study blocks only
+  segs.forEach((s,i)=>{
+    if(s.type==='study'){
+      s._id=dt+'_'+i;
+      globalTid++;
+    }
+  });
+
+  SCHEDULE[dt]={segs,type,examFach,examName:info?info.name:null};
+});
+
+// State
+let state={};
+try{state=JSON.parse(localStorage.getItem('lp2026_v5')||'{}');}catch(e){}
+function save(){try{localStorage.setItem('lp2026_v5',JSON.stringify(state));}catch(e){}}
+
+function updateStats(){
+  let total=0,done=0;
+  ALL_DATES.forEach(dt=>{
+    SCHEDULE[dt].segs.forEach(s=>{
+      if(s.type==='study'&&s._id){total++;if(state[s._id])done++;}
+    });
+  });
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-done').textContent=done;
+  document.getElementById('s-open').textContent=total-done;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('s-pct').textContent=pct+'%';
+  document.getElementById('main-bar').style.width=pct+'%';
+  document.getElementById('bar-lbl').textContent=done+' von '+total+' Einheiten erledigt';
+}
+
+function buildCountdown(){
+  const bar=document.getElementById('cbar');
+  bar.innerHTML='';
+  const today=new Date();today.setHours(0,0,0,0);
+  EXAMS.forEach(ex=>{
+    const ed=new Date(ex.date+'T12:00:00');ed.setHours(0,0,0,0);
+    const diff=Math.round((ed-today)/(1000*60*60*24));
+    const el=document.createElement('div');
+    el.className='cd';
+    el.innerHTML=`<div class="cd-days">${diff<0?'✓':diff===0?'!!':diff}</div><div class="cd-sub">${ex.name}${diff<0?' ✓':diff===0?' HEUTE':' Tage'}</div>`;
+    bar.appendChild(el);
+  });
+}
+
+function showView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav-btn')[['daily','weekly','exams'].indexOf(v)].classList.add('active');
+  if(v==='weekly')renderWeekly();
+  if(v==='exams')renderExams();
+}
+
+const WD=['So','Mo','Di','Mi','Do','Fr','Sa'];
+const MO=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+function fmtDate(dt){
+  const d=new Date(dt+'T12:00:00');
+  return WD[d.getDay()]+', '+d.getDate()+'. '+MO[d.getMonth()]+' 2026';
+}
+
+// DAILY
+let curDayIdx=0;
+(function(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const ts=today.toISOString().slice(0,10);
+  const idx=ALL_DATES.indexOf(ts);
+  curDayIdx=idx>=0?idx:0;
+})();
+
+function chDay(d){
+  curDayIdx=Math.max(0,Math.min(ALL_DATES.length-1,curDayIdx+d));
+  renderDaily();
+}
+
+function renderDaily(){
+  const dt=ALL_DATES[curDayIdx];
+  const {segs,type,examFach,examName}=SCHEDULE[dt];
+  document.getElementById('day-title').textContent=fmtDate(dt);
+
+  // Alert
+  const alertEl=document.getElementById('day-alert');
+  const today=new Date();today.setHours(0,0,0,0);
+  const tomorrow=EXAMS.find(e=>{
+    const ed=new Date(e.date+'T12:00:00');ed.setHours(0,0,0,0);
+    const td=new Date(dt+'T12:00:00');td.setHours(0,0,0,0);
+    return Math.round((ed-td)/(1000*60*60*24))===1;
+  });
+  if(type==='exam'){
+    alertEl.innerHTML=`<div class="alert alert-exam">KLAUSUR HEUTE: ${examName} – Viel Erfolg!</div>`;
+  } else if(type==='pre-exam'){
+    alertEl.innerHTML=`<div class="alert alert-pre">TAG VOR KLAUSUR: ${examName} morgen – Kein Neustoff! Nur Wiederholung & früh schlafen!</div>`;
+  } else if(tomorrow){
+    alertEl.innerHTML=`<div class="alert alert-near">Morgen Klausur: ${tomorrow.name} – heute ist Vortag!</div>`;
+  } else {
+    alertEl.innerHTML='';
+  }
+
+  // Day progress
+  let dt_=0,dn_=0;
+  segs.forEach(s=>{if(s.type==='study'&&s._id){dt_++;if(state[s._id])dn_++;}});
+  const dp=dt_?Math.round(dn_/dt_*100):0;
+  document.getElementById('day-prog').innerHTML=
+    `<div style="display:flex;justify-content:space-between;font-size:11px;color:#666;margin-bottom:3px"><span>Tagesfortschritt</span><span>${dn_}/${dt_} Einheiten (${dp}%)</span></div><div style="height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin-bottom:10px"><div style="height:100%;background:#16a34a;border-radius:3px;width:${dp}%"></div></div>`;
+
+  const content=document.getElementById('day-content');
+  content.innerHTML='';
+
+  if(type==='pre-exam'){
+    const msg=document.createElement('div');
+    msg.style.cssText='background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#9a3412';
+    msg.textContent='Vortag-Regeln: Nur Lernkarten & bekannte Aufgaben wiederholen. Kein neues Thema anfangen. Abends früh schlafen!';
+    content.appendChild(msg);
+  }
+  if(type==='exam'){
+    const msg=document.createElement('div');
+    msg.style.cssText='background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#166534';
+    msg.textContent='Klausurtag: Nur 1–1,5h Lernkarten morgens. Dann ausruhen, gut essen und konzentriert in die Klausur!';
+    content.appendChild(msg);
+  }
+
+  // Group consecutive study segs of same fach into one visual block
+  // but show each as individual checkbox
+  let i=0;
+  while(i<segs.length){
+    const s=segs[i];
+    if(s.type==='bigpause'){
+      const pb=document.createElement('div');
+      pb.className='pause-block';
+      pb.innerHTML=`<div class="pause-time">${s.startFmt} – ${s.endFmt}</div><div class="pause-label">Große Pause</div><div class="pause-dur">30 Min</div>`;
+      content.appendChild(pb);
+      i++;continue;
+    }
+    if(s.type==='pause'){
+      const pb=document.createElement('div');
+      pb.className='pause-block';
+      pb.innerHTML=`<div class="pause-time">${s.startFmt}</div><div class="pause-label">${s.label||'Pause'}</div><div class="pause-dur">${s.end-s.start} Min</div>`;
+      content.appendChild(pb);
+      i++;continue;
+    }
+    // Study: group same fach blocks together
+    const fach=s.fach;
+    const groupStart=s.startFmt;
+    const studyInGroup=[];
+    let j=i;
+    while(j<segs.length && segs[j].type==='study' && segs[j].fach===fach){
+      studyInGroup.push(segs[j]);
+      j++;
+      // skip pause between same fach
+      if(j<segs.length && segs[j].type==='pause' && j+1<segs.length && segs[j+1].type==='study' && segs[j+1].fach===fach) j++;
+    }
+    const groupEnd=studyInGroup[studyInGroup.length-1].endFmt;
+    const totalH=studyInGroup.length;
+
+    const block=document.createElement('div');
+    block.className='tblock';
+
+    const hdr=document.createElement('div');
+    hdr.className='tblock-hdr';
+    hdr.style.cssText=`background:${FBGCOL[fach]||'#f1f5f9'}`;
+    hdr.innerHTML=`
+      <div class="tblock-time" style="background:${FCOL[fach]||'#475569'}">${groupStart} – ${groupEnd}</div>
+      <div class="tblock-fach" style="color:${FCOL[fach]||'#1a1a2e'}">${BL[fach]||fach}</div>
+      <div class="tblock-dur">${totalH}h</div>`;
+    block.appendChild(hdr);
+
+    const body=document.createElement('div');
+    body.className='tblock-body';
+    body.innerHTML=`<div class="pausen-info">5 Min Pause nach jeder Stunde</div>`;
+
+    studyInGroup.forEach((seg,si)=>{
+      const row=document.createElement('div');
+      row.className='cb-row'+(state[seg._id]?' done':'');
+      row.innerHTML=`<div class="cb${state[seg._id]?' on':''}">${state[seg._id]?'✓':''}</div><div class="cb-label">${BL[fach]||fach} – Stunde ${si+1} &nbsp;<span style="font-size:11px;color:#94a3b8">${seg.startFmt}–${seg.endFmt}</span></div>`;
+      row.onclick=()=>{
+        state[seg._id]=!state[seg._id];
+        save();renderDaily();updateStats();
+      };
+      body.appendChild(row);
+    });
+    block.appendChild(body);
+    content.appendChild(block);
+    i=j;
+  }
+}
+
+// WEEKLY
+function getWeekGroups(){
+  const groups=[];let wk=[],ws=null;
+  ALL_DATES.forEach(dt=>{
+    const d=new Date(dt+'T12:00:00');
+    if(d.getDay()===1||wk.length===0){
+      if(wk.length>0)groups.push({start:ws,dates:[...wk]});
+      wk=[dt];ws=dt;
+    }else wk.push(dt);
+  });
+  if(wk.length>0)groups.push({start:ws,dates:wk});
+  return groups;
+}
+const WEEK_GROUPS=getWeekGroups();
+let curWeekIdx=0;
+(function(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const ts=today.toISOString().slice(0,10);
+  WEEK_GROUPS.forEach((wg,i)=>{if(wg.dates.includes(ts))curWeekIdx=i;});
+})();
+
+function renderWeekly(){
+  const tabs=document.getElementById('wtabs');
+  tabs.innerHTML='';
+  WEEK_GROUPS.forEach((wg,i)=>{
+    const b=document.createElement('button');
+    b.className='wtab'+(i===curWeekIdx?' active':'');
+    const sd=new Date(wg.start+'T12:00:00');
+    b.textContent='Wo.'+(i+1)+' · '+sd.getDate()+'.'+(sd.getMonth()+1)+'.';
+    b.onclick=()=>{curWeekIdx=i;renderWeekly();};
+    tabs.appendChild(b);
+  });
+
+  const wg=WEEK_GROUPS[curWeekIdx];
+  const content=document.getElementById('wcontent');
+  content.innerHTML='';
+
+  wg.dates.forEach(dt=>{
+    const {segs,type,examName}=SCHEDULE[dt];
+    let total=0,done=0;
+    segs.forEach(s=>{if(s.type==='study'&&s._id){total++;if(state[s._id])done++;}});
+    const pct=total?Math.round(done/total*100):0;
+    const exam=EXAMS.find(e=>e.date===dt);
+
+    const card=document.createElement('div');
+    card.className='wday-card';
+
+    let special='';
+    if(type==='exam')special=' 🎯 KLAUSUR: '+(exam?exam.name:'');
+    else if(type==='pre-exam')special=' — Vortag (früh schlafen!)';
+
+    card.innerHTML=`<div class="wday-hdr" onclick="this.nextElementSibling.nextElementSibling.classList.toggle('open')">
+      <div><div class="wday-title">${fmtDate(dt)}${special}</div><div class="wday-sub">${done}/${total} Einheiten erledigt</div></div>
+      <div class="wday-pct">${pct}%</div>
+    </div>`;
+
+    // Fach badges row
+    const fachs=[...new Set(segs.filter(s=>s.type==='study').map(s=>s.fach))];
+    const fachRow=document.createElement('div');
+    fachRow.className='wday-fachs';
+    fachs.forEach(f=>{
+      const sp=document.createElement('span');
+      sp.className='badge '+BC[f];
+      sp.textContent=BL[f]||f;
+      fachRow.appendChild(sp);
+    });
+    card.appendChild(fachRow);
+
+    // Collapsible tasks
+    const taskDiv=document.createElement('div');
+    taskDiv.className='wday-tasks';
+    segs.forEach(s=>{
+      if(s.type==='study'&&s._id){
+        const row=document.createElement('div');
+        row.className='cb-row'+(state[s._id]?' done':'');
+        row.style.padding='8px 14px';
+        row.innerHTML=`<div class="cb${state[s._id]?' on':''}">${state[s._id]?'✓':''}</div><div class="cb-label">${BL[s.fach]||s.fach} <span style="font-size:11px;color:#94a3b8">${s.startFmt}–${s.endFmt}</span></div><div class="badge ${BC[s.fach]||''}">${BL[s.fach]||s.fach}</div>`;
+        row.onclick=()=>{state[s._id]=!state[s._id];save();renderWeekly();updateStats();};
+        taskDiv.appendChild(row);
+      }
+    });
+    card.appendChild(taskDiv);
+    content.appendChild(card);
+  });
+}
+
+// EXAMS
+function renderExams(){
+  const el=document.getElementById('elist');
+  el.innerHTML='';
+  const today=new Date();today.setHours(0,0,0,0);
+  EXAMS.forEach(ex=>{
+    const ed=new Date(ex.date+'T12:00:00');ed.setHours(0,0,0,0);
+    const diff=Math.round((ed-today)/(1000*60*60*24));
+    const card=document.createElement('div');
+    card.className='exam-card';
+    const cls=diff<0?'days-done':diff<=7?'days-urg':diff<=21?'days-warn':'days-ok';
+    const dStr=diff<0?'Geschrieben ✓':diff===0?'HEUTE!':diff+' Tage';
+    card.innerHTML=`<div><div class="exam-name">${ex.name}</div><div class="exam-dt">${new Date(ex.date+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div></div><div class="${cls}">${dStr}</div>`;
+    el.appendChild(card);
+  });
+}
+
+function resetAll(){
+  if(confirm('Wirklich ALLE Häkchen zurücksetzen?')){
+    state={};save();renderDaily();
+    if(document.getElementById('view-weekly').classList.contains('active'))renderWeekly();
+    updateStats();
+  }
+}
+
+buildCountdown();
+renderDaily();
+updateStats();
+</script>
+</body>
+</html>
